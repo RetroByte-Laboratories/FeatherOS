@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Welcome to FeatherOS
+GenericName=System overview
+Comment=A quick tour of what is inside FeatherOS 6.1
+Exec=gnome-terminal -- bash -lc "feather-welcome; exec bash"
+Icon=feather-logo
+Terminal=false
+Categories=System;Documentation;
+StartupNotify=true

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FeatherOS Start</title>
+<style>
+  :root { --purple:#5e35b1; --orange:#e95420; --ink:#f3effc; }
+  * { box-sizing:border-box; margin:0; }
+  body {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    font-family:'Ubuntu','DejaVu Sans',sans-serif; color:var(--ink);
+    background:linear-gradient(175deg,#1a1026 0%,#3b2664 38%,#7a4d7e 62%,#e95420 100%);
+  }
+  .card { text-align:center; max-width:640px; padding:40px 24px; }
+  .feather { font-size:56px; line-height:1; filter:drop-shadow(0 4px 18px rgba(0,0,0,.45)); }
+  h1 { font-size:44px; font-weight:300; letter-spacing:.5px; margin:10px 0 2px; }
+  h1 b { font-weight:700; }
+  .codename { color:#ffd9a8; font-size:15px; letter-spacing:3px; text-transform:uppercase; margin-bottom:26px; }
+  #clock { font-size:15px; opacity:.85; margin-bottom:22px; }
+  form { display:flex; margin:0 auto 30px; max-width:520px; border-radius:999px;
+         background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.25);
+         padding:6px; backdrop-filter:blur(4px); }
+  input[type=search] { flex:1; background:transparent; border:0; outline:0; color:var(--ink);
+         font-size:16px; padding:8px 16px; }
+  input::placeholder { color:rgba(243,239,252,.6); }
+  button { border:0; border-radius:999px; padding:9px 22px; font-size:15px; cursor:pointer;
+           background:var(--orange); color:#fff; font-family:inherit; }
+  button:hover { filter:brightness(1.1); }
+  .links { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  a.chip { color:var(--ink); text-decoration:none; font-size:14px;
+           border:1px solid rgba(255,255,255,.28); border-radius:999px; padding:7px 16px;
+           background:rgba(255,255,255,.08); }
+  a.chip:hover { background:rgba(255,255,255,.18); }
+  footer { margin-top:34px; font-size:12px; opacity:.6; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="feather">&#x1FAB6;</div>
+    <h1><b>Feather</b>OS</h1>
+    <div class="codename">6.1 &middot; Eiderdown</div>
+    <div id="clock">&nbsp;</div>
+    <form action="https://duckduckgo.com/" method="get" role="search">
+      <input type="search" name="q" placeholder="Search the web with DuckDuckGo…" autofocus>
+      <button type="submit">Search</button>
+    </form>
+    <div class="links">
+      <a class="chip" href="https://github.com/RetroByte-Laboratories/FeatherOS">FeatherOS on GitHub</a>
+      <a class="chip" href="https://help.ubuntu.com/stable/ubuntu-help/">Ubuntu Help</a>
+      <a class="chip" href="https://old-releases.ubuntu.com/releases/22.04/">Jammy archives</a>
+      <a class="chip" href="https://packages.mozilla.org/">Mozilla deb repo</a>
+    </div>
+    <footer>classic &middot; light &middot; featherweight &mdash; based on Ubuntu 22.04 LTS</footer>
+  </div>
+  <script>
+    var el = document.getElementById('clock');
+    function tick() {
+      el.textContent = new Date().toLocaleString(undefined,
+        { weekday:'long', year:'numeric', month:'long', day:'numeric',
+          hour:'2-digit', minute:'2-digit' });
+    }
+    tick(); setInterval(tick, 30000);
+  </script>
+</body>
+</html>

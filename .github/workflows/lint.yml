@@ -1,0 +1,38 @@
+name: Static checks
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  checks:
+    name: Lint scripts + validate XML
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install linters
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends shellcheck libxml2-utils
+
+      - name: bash -n (syntax)
+        run: |
+          set -e
+          for f in build/*.sh build/overlay/usr/local/bin/* \
+                   build/overlay/usr/local/sbin/* build/overlay/etc/update-motd.d/*; do
+            [ -f "$f" ] || continue
+            bash -n "$f" && echo "OK  $f"
+          done
+
+      - name: shellcheck (errors only)
+        run: |
+          shellcheck -S error build/*.sh build/overlay/usr/local/bin/* \
+            build/overlay/usr/local/sbin/* build/overlay/etc/update-motd.d/*
+
+      - name: xmllint (theme + wallpapers XML)
+        run: |
+          xmllint --noout build/overlay/usr/share/themes/Feather/metacity-1/metacity-theme-1.xml
+          xmllint --noout build/overlay/usr/share/gnome-background-properties/featheros.xml

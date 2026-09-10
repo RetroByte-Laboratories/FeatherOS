@@ -1,0 +1,45 @@
+#!/bin/bash
+# ---------------------------------------------------------------------------
+# feather-welcome — quick, friendly system overview for FeatherOS.
+# ---------------------------------------------------------------------------
+. /etc/os-release 2>/dev/null || true
+
+if [ -t 1 ]; then
+    P=$'\e[1;35m'   # feather purple
+    O=$'\e[0;33m'   # warm orange
+    D=$'\e[2m'      # dim
+    R=$'\e[0m'      # reset
+else
+    P="" O="" D="" R=""
+fi
+
+HOST_N="$(hostname)"
+KERNEL="$(uname -r)"
+UP="$(uptime -p 2>/dev/null | sed 's/^up //')"
+MEM="$(free -h | awk '/^Mem:/{print $2 " total, " $7 " free"}')"
+CPU="$(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 | sed 's/^ *//')"
+DISK="$(df -h / | awk 'NR==2{print $3 " used of " $2}')"
+PKGS="$(dpkg -l 2>/dev/null | grep -c '^ii' || echo '?')"
+
+printf '\n'
+printf '%s\n' "  ${P}        ._      ${R}"
+printf '%s\n' "  ${P}       /' )     ${R}  ${P}FeatherOS${R} ${O}6.1${R} “Eiderdown”"
+printf '%s\n' "  ${P}      /  /      ${R}  classic. light. featherweight."
+printf '%s\n' "  ${P}     /  (       ${R}"
+printf '%s\n' "  ${P}    /   )_)     ${R}  ${D}https://github.com/RetroByte-Laboratories/FeatherOS${R}"
+printf '%s\n' "  ${P}   /  _/        ${R}"
+printf '%s\n' "  ${P}  (._.)         ${R}"
+printf '\n'
+printf '  %-14s %s\n' "host" "$HOST_N"
+printf '  %-14s %s\n' "os" "${PRETTY_NAME:-FeatherOS}"
+printf '  %-14s %s\n' "base" "Ubuntu 22.04 LTS (jammy) · GNOME Flashback + Metacity"
+printf '  %-14s %s\n' "kernel" "$KERNEL"
+printf '  %-14s %s\n' "cpu" "$CPU"
+printf '  %-14s %s\n' "memory" "$MEM"
+printf '  %-14s %s\n' "root fs" "$DISK"
+printf '  %-14s %s\n' "packages" "$PKGS"
+printf '  %-14s %s\n' "uptime" "${UP:-just now}"
+printf '\n'
+printf "  ${D}Tips:${R} apt install <app>   ·   Firefox is snap-free (Mozilla repo)\n"
+printf "  ${D}      This system tracks Ubuntu jammy archives for years of updates.\n"
+printf '\n'

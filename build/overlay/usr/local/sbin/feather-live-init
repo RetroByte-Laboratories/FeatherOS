@@ -1,0 +1,40 @@
+#!/bin/sh
+# ---------------------------------------------------------------------------
+# feather-live-init — runs only on the live medium (boot=casper kernel arg).
+# Writes the LightDM autologin snippet and drops the installer + welcome
+# shortcuts onto the live user's desktop. On installed systems the systemd
+# unit's ConditionKernelCommandLine prevents this from ever running.
+# ---------------------------------------------------------------------------
+set -eu
+
+# load live identity baked into the initrd
+[ -r /etc/casper.conf ] && . /etc/casper.conf
+USER_NAME="${USERNAME:-feather}"
+
+if ! id "$USER_NAME" >/dev/null 2>&1; then
+    USER_NAME="$(getent passwd 999 | cut -d: -f1)"
+    [ -n "$USER_NAME" ] || exit 0
+fi
+
+# 1) live autologin into the FeatherOS session
+mkdir -p /etc/lightdm/lightdm.conf.d
+cat > /etc/lightdm/lightdm.conf.d/99-feather-live-autologin.conf <<EOF
+# Written by feather-live-init (live medium only)
+[Seat:*]
+autologin-user=$USER_NAME
+autologin-user-timeout=0
+autologin-session=featheros
+EOF
+
+# 2) desktop shortcuts for the live user
+HOME_DIR="/home/$USER_NAME"
+if [ -d "$HOME_DIR" ]; then
+    mkdir -p "$HOME_DIR/Desktop"
+    [ -f /usr/share/applications/ubiquity.desktop ] && \
+        cp -f /usr/share/applications/ubiquity.desktop "$HOME_DIR/Desktop/install-featheros.desktop"
+    [ -f /usr/share/applications/feather-welcome.desktop ] && \
+        cp -f /usr/share/applications/feather-welcome.desktop "$HOME_DIR/Desktop/feather-welcome.desktop"
+    chown -R "$USER_NAME:$USER_NAME" "$HOME_DIR/Desktop"
+fi
+
+exit 0

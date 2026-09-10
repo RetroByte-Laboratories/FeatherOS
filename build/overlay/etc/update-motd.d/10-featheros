@@ -1,0 +1,9 @@
+#!/bin/sh
+# FeatherOS login/message-of-the-day banner
+printf "\n"
+printf "  \033[1;35m   ,_\033[0m      Welcome to \033[1;35mFeatherOS\033[0m 6.1 \042Eiderdown\042\n"
+printf "  \033[1;35m  /' )\033[0m     a lightweight classic-desktop Linux\n"
+printf "  \033[1;35m /  /\033[0m      base: Ubuntu 22.04 LTS (jammy)\n"
+printf "  \033[1;35m/  (\033[0m       desktop: GNOME Flashback + Metacity\n"
+printf "  \033[1;35m\033[0m       Run \033[1mfeather-welcome\033[0m for a quick overview.\n"
+printf "\n"

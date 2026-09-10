@@ -1,0 +1,15 @@
+# build outputs
+out/
+*.iso
+*.squashfs
+*.img.tmp
+
+# local work dirs
+/feather-build/
+base.iso
+
+# editors
+*.swp
+*~
+.idea/
+.vscode/

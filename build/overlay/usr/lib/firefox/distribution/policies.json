@@ -1,0 +1,12 @@
+{
+  "policies": {
+    "Homepage": {
+      "URL": "file:///usr/share/featheros/start/index.html",
+      "StartPage": "homepage"
+    },
+    "DontCheckDefaultBrowser": true,
+    "SearchSuggestEnabled": true,
+    "DisableTelemetry": true,
+    "CaptivePortal": true
+  }
+}

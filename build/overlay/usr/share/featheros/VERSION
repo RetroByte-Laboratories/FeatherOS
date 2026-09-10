@@ -1,0 +1,12 @@
+FeatherOS 6.1 (Eiderdown)
+=========================
+
+Base .......... Ubuntu 22.04 LTS (jammy)
+Desktop ....... GNOME Flashback + Metacity ("Feather" theme)
+Login ......... LightDM (GTK greeter)
+Boot splash ... Plymouth "feather"
+Browser ....... Firefox (Mozilla deb, snap-free)
+Lineage ....... 4.4 Puffin -> 8.4 Kerala Kite -> 14.05 Bit -> 6.1 Eiderdown
+
+Live session autologins as user "feather" (empty password).
+Installed systems behave like a normal Ubuntu 22.04 machine.

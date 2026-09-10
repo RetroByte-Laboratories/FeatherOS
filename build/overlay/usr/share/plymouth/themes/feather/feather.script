@@ -1,0 +1,120 @@
+# ---------------------------------------------------------------------------
+# FeatherOS 6.1 "Eiderdown" — Plymouth boot splash (script renderer)
+# bg.png  : deep plum night gradient artwork
+# logo.png: white feather roundel
+# ---------------------------------------------------------------------------
+
+# fallback colors while/if images load (deep plum -> near-black)
+Window.SetBackgroundTopColor(0.102, 0.063, 0.149);
+Window.SetBackgroundBottomColor(0.035, 0.024, 0.055);
+
+# ---------------------------- background ----------------------------------
+bg_orig = Image("bg.png");
+bg = bg_orig.Scale(Window.GetWidth(), Window.GetHeight());
+bg_sprite = Sprite(bg);
+bg_sprite.SetZ(-100);
+
+# ------------------------------- logo -------------------------------------
+logo_orig = Image("logo.png");
+logo_w = Window.GetWidth() * 0.13;
+if (logo_w > 200.0)
+    logo_w = 200.0;
+logo_h = logo_w * logo_orig.GetHeight() / logo_orig.GetWidth();
+logo = logo_orig.Scale(Math.Int(logo_w), Math.Int(logo_h));
+logo_sprite = Sprite(logo);
+logo_sprite.SetZ(-50);
+
+# ------------------------------- text -------------------------------------
+title_image = Image.Text("FeatherOS 6.1", 0.96, 0.95, 0.98);
+title_sprite = Sprite(title_image);
+
+sub_image = Image.Text("Eiderdown", 0.71, 0.63, 0.87);
+sub_sprite = Sprite(sub_image);
+
+blank_image = Image.Text(" ", 1, 1, 1);
+progress_image = Image.Text(" ", 1, 1, 1);
+progress_sprite = Sprite(progress_image);
+
+pw_image = blank_image;
+pw_sprite = Sprite(pw_image);
+pw_sprite.SetZ(50);
+
+msg_image = blank_image;
+msg_sprite = Sprite(msg_image);
+msg_sprite.SetZ(40);
+
+# ------------------------------ layout ------------------------------------
+fun layout() {
+    cx = Window.GetWidth() / 2;
+    cy = Window.GetHeight() / 2;
+
+    logo_sprite.SetX(Math.Int(cx - logo.GetWidth() / 2));
+    logo_sprite.SetY(Math.Int(cy - logo.GetHeight() / 2 - 28));
+
+    title_sprite.SetX(Math.Int(cx - title_image.GetWidth() / 2));
+    title_sprite.SetY(Math.Int(cy + logo.GetHeight() / 2 - 10));
+
+    sub_sprite.SetX(Math.Int(cx - sub_image.GetWidth() / 2));
+    sub_sprite.SetY(title_sprite.GetY() + title_image.GetHeight() + 4);
+
+    progress_sprite.SetX(Math.Int(cx - progress_image.GetWidth() / 2));
+    progress_sprite.SetY(Window.GetHeight() - 52);
+
+    pw_sprite.SetX(Math.Int(cx - pw_image.GetWidth() / 2));
+    pw_sprite.SetY(Window.GetHeight() - 96);
+
+    msg_sprite.SetX(Math.Int(cx - msg_image.GetWidth() / 2));
+    msg_sprite.SetY(Window.GetHeight() - 140);
+}
+
+fun set_progress(text) {
+    progress_image = Image.Text(text, 0.62, 0.56, 0.78);
+    progress_sprite.SetImage(progress_image);
+    layout();
+}
+
+# --------------------------- animation loop --------------------------------
+fun refresh_callback() {
+    t = Plymouth.GetMilliseconds() / 1000;
+    pulse = (Math.Sin(t * 2.1) + 1) / 2;
+    logo_sprite.SetOpacity(0.66 + 0.34 * pulse);
+    layout();
+}
+Plymouth.SetRefreshFunction(refresh_callback);
+
+fun boot_progress_callback(duration, progress) {
+    pct = Math.Int(progress * 100);
+    set_progress("" + pct + " %");
+}
+Plymouth.SetBootProgressFunction(boot_progress_callback);
+
+# --------------------------- password dialog -------------------------------
+fun display_password_callback(prompt, bullets) {
+    txt = "*";
+    i = 1;
+    while (i < bullets) {
+        txt = txt + "*";
+        i = i + 1;
+    }
+    pw_image = Image.Text("Password: " + txt, 0.9, 0.88, 0.95);
+    pw_sprite.SetImage(pw_image);
+    layout();
+}
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+fun display_normal_callback() {
+    pw_image = blank_image;
+    pw_sprite.SetImage(pw_image);
+    layout();
+}
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+
+# ------------------------------ messages -----------------------------------
+fun message_callback(text) {
+    msg_image = Image.Text(text, 0.62, 0.58, 0.70);
+    msg_sprite.SetImage(msg_image);
+    layout();
+}
+Plymouth.SetMessageFunction(message_callback);
+
+layout();

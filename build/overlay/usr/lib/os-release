@@ -1,0 +1,13 @@
+NAME="FeatherOS"
+VERSION="6.1 (Eiderdown)"
+ID=featheros
+ID_LIKE="debian ubuntu"
+PRETTY_NAME="FeatherOS 6.1 (Eiderdown)"
+VERSION_ID="6.1"
+HOME_URL="https://github.com/RetroByte-Laboratories/FeatherOS"
+DOCUMENTATION_URL="https://github.com/RetroByte-Laboratories/FeatherOS#readme"
+SUPPORT_URL="https://github.com/RetroByte-Laboratories/FeatherOS/issues"
+BUG_REPORT_URL="https://github.com/RetroByte-Laboratories/FeatherOS/issues"
+VERSION_CODENAME=eiderdown
+UBUNTU_CODENAME=jammy
+LOGO=feather-logo

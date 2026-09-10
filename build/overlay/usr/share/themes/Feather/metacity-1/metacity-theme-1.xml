@@ -1,0 +1,189 @@
+<?xml version="1.0"?>
+<metacity_theme>
+  <info>
+    <name>Feather</name>
+    <author>RetroByte Laboratories</author>
+    <copyright>FeatherOS contributors — MIT License</copyright>
+    <date>2026</date>
+    <description>Yaru-inspired flat theme for FeatherOS 6.1 (Eiderdown)</description>
+  </info>
+
+  <!-- ================= palette ================= -->
+  <constant name="BarFocused" value="#2c2c2c"/>
+  <constant name="BarUnfocused" value="#232323"/>
+  <constant name="FrameUnfocused" value="#1f1f1f"/>
+  <constant name="Accent" value="#5e35b1"/>
+  <constant name="Glyph" value="#f5f5f5"/>
+  <constant name="TitleFocused" value="#f2f2f2"/>
+  <constant name="TitleUnfocused" value="#9d9d9d"/>
+  <constant name="BtnPrelight" value="#3f3f46"/>
+  <constant name="BtnPressed" value="#5e35b1"/>
+
+  <!-- ================= geometry ================= -->
+  <frame_geometry name="normal" title_scale="medium" rounded_top_left="9" rounded_top_right="9" rounded_bottom_left="false" rounded_bottom_right="false">
+    <distance name="left_width" value="1"/>
+    <distance name="right_width" value="1"/>
+    <distance name="bottom_height" value="1"/>
+    <distance name="left_titlebar_edge" value="0"/>
+    <distance name="right_titlebar_edge" value="0"/>
+    <distance name="title_vertical_pad" value="5"/>
+    <distance name="button_width" value="24"/>
+    <distance name="button_height" value="20"/>
+    <border name="title_border" left="12" right="12" top="2" bottom="2"/>
+    <border name="button_border" left="4" right="6" top="5" bottom="5"/>
+  </frame_geometry>
+
+  <frame_geometry name="max" parent="normal" rounded_top_left="false" rounded_top_right="false">
+    <distance name="left_width" value="0"/>
+    <distance name="right_width" value="0"/>
+    <distance name="bottom_height" value="0"/>
+  </frame_geometry>
+
+  <!-- ================= pieces ================= -->
+  <draw_ops name="titlebar_focused">
+    <rectangle color="BarFocused" x="0" y="0" width="width" height="height" filled="true"/>
+    <rectangle color="Accent" x="0" y="height-3" width="width" height="3" filled="true"/>
+    <title x="(0 `max` ((width - title_width) / 2))" y="((height - title_height) / 2 `max` 0)" color="TitleFocused"/>
+  </draw_ops>
+
+  <draw_ops name="titlebar_unfocused">
+    <rectangle color="BarUnfocused" x="0" y="0" width="width" height="height" filled="true"/>
+    <title x="(0 `max` ((width - title_width) / 2))" y="((height - title_height) / 2 `max` 0)" color="TitleUnfocused"/>
+  </draw_ops>
+
+  <draw_ops name="edge_dark">
+    <rectangle color="FrameUnfocused" x="0" y="0" width="width" height="height" filled="true"/>
+  </draw_ops>
+
+  <!-- ================= buttons ================= -->
+  <draw_ops name="close_glyph">
+    <line x1="width/2-5" y1="height/2-5" x2="width/2+5" y2="height/2+5" color="Glyph"/>
+    <line x1="width/2-5" y1="height/2+5" x2="width/2+5" y2="height/2-5" color="Glyph"/>
+  </draw_ops>
+  <draw_ops name="minimize_glyph">
+    <rectangle x="width/2-5" y="height/2+2" width="10" height="2" filled="true" color="Glyph"/>
+  </draw_ops>
+  <draw_ops name="maximize_glyph">
+    <rectangle x="width/2-6" y="height/2-5" width="12" height="10" color="Glyph"/>
+    <rectangle x="width/2-6" y="height/2-5" width="12" height="2" filled="true" color="Glyph"/>
+  </draw_ops>
+  <draw_ops name="menu_glyph">
+    <rectangle x="width/2-5" y="height/2-5" width="3" height="3" filled="true" color="Glyph"/>
+    <rectangle x="width/2-5" y="height/2-1" width="3" height="3" filled="true" color="Glyph"/>
+    <rectangle x="width/2-5" y="height/2+3" width="3" height="3" filled="true" color="Glyph"/>
+  </draw_ops>
+
+  <draw_ops name="btn_bg_prelight">
+    <rectangle color="BtnPrelight" x="0" y="0" width="width" height="height" filled="true"/>
+  </draw_ops>
+  <draw_ops name="btn_bg_pressed">
+    <rectangle color="BtnPressed" x="0" y="0" width="width" height="height" filled="true"/>
+  </draw_ops>
+
+  <draw_ops name="close_normal"><close_glyph/></draw_ops>
+  <draw_ops name="close_prelight"><btn_bg_prelight/><close_glyph/></draw_ops>
+  <draw_ops name="close_pressed"><btn_bg_pressed/><close_glyph/></draw_ops>
+  <draw_ops name="minimize_normal"><minimize_glyph/></draw_ops>
+  <draw_ops name="minimize_prelight"><btn_bg_prelight/><minimize_glyph/></draw_ops>
+  <draw_ops name="minimize_pressed"><btn_bg_pressed/><minimize_glyph/></draw_ops>
+  <draw_ops name="maximize_normal"><maximize_glyph/></draw_ops>
+  <draw_ops name="maximize_prelight"><btn_bg_prelight/><maximize_glyph/></draw_ops>
+  <draw_ops name="maximize_pressed"><btn_bg_pressed/><maximize_glyph/></draw_ops>
+  <draw_ops name="menu_normal"><menu_glyph/></draw_ops>
+  <draw_ops name="menu_prelight"><btn_bg_prelight/><menu_glyph/></draw_ops>
+  <draw_ops name="menu_pressed"><btn_bg_pressed/><menu_glyph/></draw_ops>
+
+  <!-- ================= styles ================= -->
+  <frame_style name="focused" geometry="normal">
+    <piece position="titlebar" draw_ops="titlebar_focused"/>
+    <piece position="left_edge" draw_ops="edge_dark"/>
+    <piece position="right_edge" draw_ops="edge_dark"/>
+    <piece position="bottom_edge" draw_ops="edge_dark"/>
+    <button function="close" state="normal" draw_ops="close_normal"/>
+    <button function="close" state="prelight" draw_ops="close_prelight"/>
+    <button function="close" state="pressed" draw_ops="close_pressed"/>
+    <button function="minimize" state="normal" draw_ops="minimize_normal"/>
+    <button function="minimize" state="prelight" draw_ops="minimize_prelight"/>
+    <button function="minimize" state="pressed" draw_ops="minimize_pressed"/>
+    <button function="maximize" state="normal" draw_ops="maximize_normal"/>
+    <button function="maximize" state="prelight" draw_ops="maximize_prelight"/>
+    <button function="maximize" state="pressed" draw_ops="maximize_pressed"/>
+    <button function="menu" state="normal" draw_ops="menu_normal"/>
+    <button function="menu" state="prelight" draw_ops="menu_prelight"/>
+    <button function="menu" state="pressed" draw_ops="menu_pressed"/>
+  </frame_style>
+
+  <frame_style name="unfocused" geometry="normal">
+    <piece position="titlebar" draw_ops="titlebar_unfocused"/>
+    <piece position="left_edge" draw_ops="edge_dark"/>
+    <piece position="right_edge" draw_ops="edge_dark"/>
+    <piece position="bottom_edge" draw_ops="edge_dark"/>
+    <button function="close" state="normal" draw_ops="close_normal"/>
+    <button function="close" state="prelight" draw_ops="close_prelight"/>
+    <button function="close" state="pressed" draw_ops="close_pressed"/>
+    <button function="minimize" state="normal" draw_ops="minimize_normal"/>
+    <button function="minimize" state="prelight" draw_ops="minimize_prelight"/>
+    <button function="minimize" state="pressed" draw_ops="minimize_pressed"/>
+    <button function="maximize" state="normal" draw_ops="maximize_normal"/>
+    <button function="maximize" state="prelight" draw_ops="maximize_prelight"/>
+    <button function="maximize" state="pressed" draw_ops="maximize_pressed"/>
+    <button function="menu" state="normal" draw_ops="menu_normal"/>
+    <button function="menu" state="prelight" draw_ops="menu_prelight"/>
+    <button function="menu" state="pressed" draw_ops="menu_pressed"/>
+  </frame_style>
+
+  <frame_style name="focused_max" geometry="max">
+    <piece position="titlebar" draw_ops="titlebar_focused"/>
+    <piece position="left_edge" draw_ops="edge_dark"/>
+    <piece position="right_edge" draw_ops="edge_dark"/>
+    <piece position="bottom_edge" draw_ops="edge_dark"/>
+    <button function="close" state="normal" draw_ops="close_normal"/>
+    <button function="close" state="prelight" draw_ops="close_prelight"/>
+    <button function="close" state="pressed" draw_ops="close_pressed"/>
+    <button function="minimize" state="normal" draw_ops="minimize_normal"/>
+    <button function="minimize" state="prelight" draw_ops="minimize_prelight"/>
+    <button function="minimize" state="pressed" draw_ops="minimize_pressed"/>
+    <button function="maximize" state="normal" draw_ops="maximize_normal"/>
+    <button function="maximize" state="prelight" draw_ops="maximize_prelight"/>
+    <button function="maximize" state="pressed" draw_ops="maximize_pressed"/>
+    <button function="menu" state="normal" draw_ops="menu_normal"/>
+    <button function="menu" state="prelight" draw_ops="menu_prelight"/>
+    <button function="menu" state="pressed" draw_ops="menu_pressed"/>
+  </frame_style>
+
+  <frame_style name="unfocused_max" geometry="max">
+    <piece position="titlebar" draw_ops="titlebar_unfocused"/>
+    <piece position="left_edge" draw_ops="edge_dark"/>
+    <piece position="right_edge" draw_ops="edge_dark"/>
+    <piece position="bottom_edge" draw_ops="edge_dark"/>
+    <button function="close" state="normal" draw_ops="close_normal"/>
+    <button function="close" state="prelight" draw_ops="close_prelight"/>
+    <button function="close" state="pressed" draw_ops="close_pressed"/>
+    <button function="minimize" state="normal" draw_ops="minimize_normal"/>
+    <button function="minimize" state="prelight" draw_ops="minimize_prelight"/>
+    <button function="minimize" state="pressed" draw_ops="minimize_pressed"/>
+    <button function="maximize" state="normal" draw_ops="maximize_normal"/>
+    <button function="maximize" state="prelight" draw_ops="maximize_prelight"/>
+    <button function="maximize" state="pressed" draw_ops="maximize_pressed"/>
+    <button function="menu" state="normal" draw_ops="menu_normal"/>
+    <button function="menu" state="prelight" draw_ops="menu_prelight"/>
+    <button function="menu" state="pressed" draw_ops="menu_pressed"/>
+  </frame_style>
+
+  <frame_style_set name="feather_set">
+    <frame focus="yes" state="normal" resize="both" style="focused"/>
+    <frame focus="no" state="normal" resize="both" style="unfocused"/>
+    <frame focus="yes" state="maximized" style="focused_max"/>
+    <frame focus="no" state="maximized" style="unfocused_max"/>
+    <frame focus="yes" state="shaded" style="focused"/>
+    <frame focus="no" state="shaded" style="unfocused"/>
+  </frame_style_set>
+
+  <window type="normal" style_set="feather_set"/>
+  <window type="dialog" style_set="feather_set"/>
+  <window type="modal_dialog" style_set="feather_set"/>
+  <window type="utility" style_set="feather_set"/>
+  <window type="menu" style_set="feather_set"/>
+  <window type="border" style_set="feather_set"/>
+  <window type="splash" style_set="feather_set"/>
+</metacity_theme>
