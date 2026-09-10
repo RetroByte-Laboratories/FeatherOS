@@ -45,7 +45,7 @@ verify() {
     log "checksum OK: ${actual:0:16}… ($(du -h "$TARGET" | cut -f1))"
 }
 
-if verified(); then
+if verified; then
     log "base ISO already present and verified: $TARGET"
     exit 0
 fi
