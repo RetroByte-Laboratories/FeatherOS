@@ -1,0 +1,15 @@
+[Unit]
+Description=FeatherOS live session bootstrap (autologin + installer shortcut)
+Documentation=https://github.com/RetroByte-Laboratories/FeatherOS
+# Only meaningful on the live medium; Condition makes it a no-op on installs.
+ConditionKernelCommandLine=boot=casper
+After=multi-user.target
+Before=display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/feather-live-init
+RemainAfterExit=yes
+
+[Install]
+WantedBy=graphical.target

@@ -1,0 +1,135 @@
+name: Build FeatherOS ISO
+
+on:
+  workflow_dispatch:
+    inputs:
+      slim_build:
+        description: "Slim build (omit LibreOffice / GIMP / Thunderbird)"
+        type: boolean
+        default: false
+      run_smoke_test:
+        description: "Boot-test the ISO in QEMU and upload screenshots"
+        type: boolean
+        default: true
+      publish_release:
+        description: "Publish a GitHub release with the ISO"
+        type: boolean
+        default: true
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: build-iso
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build FeatherOS 6.1 ISO (amd64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve build options
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "SLIM_BUILD=${{ inputs.slim_build }}" >> "$GITHUB_ENV"
+            echo "RUN_SMOKE=${{ inputs.run_smoke_test }}" >> "$GITHUB_ENV"
+            echo "PUBLISH_RELEASE=${{ inputs.publish_release }}" >> "$GITHUB_ENV"
+          else
+            echo "SLIM_BUILD=false" >> "$GITHUB_ENV"
+            echo "RUN_SMOKE=true" >> "$GITHUB_ENV"
+            echo "PUBLISH_RELEASE=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Free disk space (runner images carry ~25GB of SDKs)
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+            /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
+            /usr/share/swift /usr/share/mysql /usr/lib/jvm /usr/share/miniconda \
+            /usr/share/gradle-* /usr/share/apache-maven-* /usr/share/sbt || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+          sudo apt-get clean
+          echo "=== disk after cleanup ===" && df -h / /mnt 2>/dev/null || true
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xorriso squashfs-tools mtools imagemagick \
+            qemu-system-x86 ovmf
+
+      - name: Restore base ISO cache
+        uses: actions/cache@v4
+        with:
+          path: /mnt/base-iso-cache
+          key: base-iso-ubuntu-22.04.5-desktop-amd64-v1
+
+      - name: Build FeatherOS ISO
+        run: |
+          set -o pipefail
+          sudo env SLIM_BUILD="$SLIM_BUILD" \
+            FEATHER_BASE_ISO=/mnt/base-iso-cache/ubuntu-22.04.5-desktop-amd64.iso \
+            bash build/build.sh all 2>&1 | tee build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
+
+      # Debug channel: the sandbox cannot download logs/artifacts from
+      # GitHub's CDN, so push the log tail into the repo itself.
+      - name: Push build log to branch (debug channel)
+        if: always()
+        run: |
+          git config user.name "featheros-ci-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git fetch origin arena/01a08a36-featheros
+          git checkout -B ci-logpush origin/arena/01a08a36-featheros
+          mkdir -p ci
+          if [ -f build.log ]; then
+            tail -c 500000 build.log > ci/last-build.log
+          else
+            echo "no build.log produced" > ci/last-build.log
+          fi
+          git add ci/last-build.log
+          git commit -m "CI: attach build log tail (run ${{ github.run_id }})"
+          git push origin HEAD:arena/01a08a36-featheros
+
+      - name: Smoke test (QEMU boot, BIOS + UEFI)
+        if: env.RUN_SMOKE == 'true'
+        continue-on-error: true
+        run: |
+          sudo env SMOKE_SECS_BIOS=660 SMOKE_SECS_UEFI=420 bash build/smoke-test.sh
+          sudo chown -R "$(id -u):$(id -g)" out/ || true
+
+      - name: Upload smoke-test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshots
+          path: out/smoke/
+          if-no-files-found: ignore
+
+      - name: Upload build metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: |
+            out/build-info.txt
+            out/RELEASE_NOTES.md
+          if-no-files-found: ignore
+
+      - name: Publish GitHub release
+        if: env.PUBLISH_RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash build/publish-release.sh

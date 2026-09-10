@@ -1,0 +1,34 @@
+# FeatherOS 6.1 system-wide GSettings defaults
+# (compiled by glib-compile-schemas during build)
+
+[org.gnome.desktop.background]
+picture-uri='file:///usr/share/backgrounds/eiderdown.png'
+picture-uri-dark='file:///usr/share/backgrounds/eiderdown.png'
+picture-options='zoom'
+
+[org.gnome.desktop.screensaver]
+picture-uri='file:///usr/share/backgrounds/eiderdown.png'
+
+[org.gnome.desktop.interface]
+gtk-theme='Yaru'
+icon-theme='Yaru'
+cursor-theme='Yaru'
+font-name='Ubuntu 11'
+document-font-name='Sans 11'
+monospace-font-name='Ubuntu Mono 13'
+
+[org.gnome.desktop.wm.preferences]
+theme='Feather'
+button-layout=':minimize,maximize,close'
+titlebar-font='Ubuntu Bold 11'
+audible-bell=false
+
+[org.gnome.metacity]
+theme='Feather'
+button-layout=':minimize,maximize,close'
+
+[org.gnome.gnome-flashback.workarounds]
+fix-button-layout=true
+
+[org.gnome.nautilus.preferences]
+default-folder-viewer='icon-view'

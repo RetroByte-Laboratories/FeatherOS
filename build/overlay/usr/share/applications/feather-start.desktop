@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=FeatherOS Start
+Comment=FeatherOS home page
+Icon=feather-logo
+URL=file:///usr/share/featheros/start/index.html
+Terminal=false
+Categories=Network;WebBrowser;

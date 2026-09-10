@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=FeatherOS
+Comment=FeatherOS classic session (GNOME Flashback + Metacity)
+Exec=gnome-session --session=gnome-flashback-metacity
+TryExec=gnome-session
+Type=Application
+DesktopNames=GNOME-Flashback;GNOME;
+Keywords=featheros;flashback;metacity;classic;

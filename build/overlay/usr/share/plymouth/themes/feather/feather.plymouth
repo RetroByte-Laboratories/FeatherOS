@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=Feather
+Description=FeatherOS 6.1 boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/feather
+ScriptFile=/usr/share/plymouth/themes/feather/feather.script

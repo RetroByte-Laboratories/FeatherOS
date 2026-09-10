@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE wallpapers SYSTEM "gnome-wp-list.dtd">
+<wallpapers>
+  <wallpaper deleted="false">
+    <name>Eiderdown</name>
+    <filename>/usr/share/backgrounds/eiderdown.png</filename>
+    <options>zoom</options>
+    <shade_type>solid</shade_type>
+    <pcolor>#5e35b1</pcolor>
+    <scolor>#e95420</scolor>
+  </wallpaper>
+</wallpapers>
