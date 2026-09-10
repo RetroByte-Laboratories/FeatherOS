@@ -131,7 +131,20 @@ log "regenerating initramfs (casper.conf + plymouth theme)"
 update-initramfs -k all -u
 
 # ===========================================================================
-# 8. cleanup for a tidy squashfs
+# 8. trim the fat — FeatherOS stays lean: drop non-English translations,
+#    localized man pages and bundled docs (keeps locale-gen data intact so
+#    users can still generate any locale after install)
+# ===========================================================================
+log "trimming translations / man pages / bundled docs"
+find /usr/share/locale -mindepth 1 -maxdepth 1 ! -name 'en*' ! -name 'locale.alias' \
+    -exec rm -rf {} + 2>/dev/null || true
+find /usr/share/man -mindepth 1 -maxdepth 1 ! -name 'man*' -exec rm -rf {} + 2>/dev/null || true
+rm -rf /usr/share/doc/* /usr/share/doc-base/* 2>/dev/null || true
+find /usr/share/help -mindepth 1 -maxdepth 1 ! -name 'C' -exec rm -rf {} + 2>/dev/null || true
+rm -rf /usr/share/gnome-help/* 2>/dev/null || true
+
+# ===========================================================================
+# 9. cleanup for a tidy squashfs
 # ===========================================================================
 log "cleaning up"
 apt-get clean

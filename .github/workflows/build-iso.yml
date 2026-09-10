@@ -46,6 +46,16 @@ jobs:
             echo "PUBLISH_RELEASE=true" >> "$GITHUB_ENV"
           fi
 
+      - name: Free disk space (runner images carry ~25GB of SDKs)
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+            /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost \
+            /usr/share/swift /usr/share/mysql /usr/lib/jvm /usr/share/miniconda \
+            /usr/share/gradle-* /usr/share/apache-maven-* /usr/share/sbt || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+          sudo apt-get clean
+          echo "=== disk after cleanup ===" && df -h / /mnt 2>/dev/null || true
+
       - name: Install build dependencies
         run: |
           sudo apt-get update

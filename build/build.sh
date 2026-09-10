@@ -4,16 +4,16 @@
 #
 # Remasters the official Ubuntu 22.04 desktop ISO:
 #   fetch     download + verify base ISO
-#   extract   pull out the ISO tree + hybrid-boot blobs
+#   extract   loop-mount it and copy the tree (sans old squashfs) + blobs
 #   unpack    unsquashfs the live rootfs
 #   overlay   copy FeatherOS files + branding into the rootfs
 #   customize chroot: swap GNOME Shell for Flashback/Metacity, apps, initrd
-#   repack    re-squash, patch boot menus / efi.img / md5s / manifests
+#   repack    trim + re-squash, patch boot menus / efi.img / md5s / manifests
 #   iso       build the final hybrid ISO with xorriso
 #   all       everything above, in order
 #
-# MUST run as root (chroot + mounts). Pick a workdir with >=20GB free via
-# FEATHER_WORK, or it is chosen automatically (/mnt preferred).
+# MUST run as root (chroot + mounts). Work dir is chosen automatically
+# (FEATHER_WORK overrides); the pipeline is written to fit ~15GB.
 # ---------------------------------------------------------------------------
 set -euo pipefail
 
@@ -27,40 +27,47 @@ SLIM="${SLIM_BUILD:-0}"
 log()   { printf '\n\033[1;35m[feather-build]\033[0m %s\n' "$*"; }
 stage() { printf '\n\033[1;45;97m== %s ==\033[0m\n' "$*"; }
 fail()  { printf '\033[1;31m[feather-build] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+disk()  { df -h "$1" 2>/dev/null | awk 'NR==2{printf "%s free of %s", $4, $2}'; }
 
 [ "$(id -u)" = 0 ] || fail "build.sh must run as root (try: sudo bash build/build.sh $MODE)"
 
 # ---- work directory ------------------------------------------------------
+# Evaluate candidates, pick the one with the most free space; need >= 12GB.
 pick_workdir() {
-    local cands=() d avail
+    local cands=() d avail best="" best_avail=0
     [ -n "${FEATHER_WORK:-}" ] && cands+=("$FEATHER_WORK")
-    cands+=(/mnt/feather-build "$HOME/feather-build" /tmp/feather-build)
+    cands+=(/mnt/feather-build "$HOME/feather-build" /tmp/feather-build ./feather-build-work)
     for d in "${cands[@]}"; do
         mkdir -p "$d" 2>/dev/null || continue
-        avail="$(df -BG --output=avail "$d" | tail -1 | tr -dc '0-9')"
-        if [ "${avail:-0}" -ge 20 ]; then printf '%s' "$d"; return; fi
+        avail="$(df -BG --output=avail "$d" 2>/dev/null | tail -1 | tr -dc '0-9')"
+        log "candidate workdir $d: ${avail:-?}GB free $(disk "$d")"
+        [ -n "${avail:-}" ] || continue
+        if [ "$avail" -gt "$best_avail" ]; then best="$d"; best_avail="$avail"; fi
     done
-    fail "no work directory with >=20GB free found"
+    [ -n "$best" ] || fail "no usable work directory found"
+    [ "$best_avail" -ge 12 ] || fail "best workdir $best has only ${best_avail}GB free (need >=12GB)"
+    printf '%s' "$best"
 }
 WORK="$(pick_workdir)"
 ISO_SRC="$WORK/iso-src"
 ROOTFS="$WORK/rootfs"
 BASE_ISO="$WORK/base.iso"
+ISOMNT="$WORK/isomnt"
 OUTDIR="$(pwd)/out"
 mkdir -p "$OUTDIR"
+
+log "FeatherOS $FEATHER_VERSION “$FEATHER_CODENAME” build"
+log "workdir: $WORK ($(disk "$WORK"))   |   slim: $SLIM"
+[ "$SLIM" = 1 ] && log "SLIM build: LibreOffice / GIMP / Thunderbird will be omitted"
 
 # early build metadata (updated again when the ISO is finished)
 cat > "$OUTDIR/build-info.txt" <<EOF
 FeatherOS $FEATHER_PRETTY
 status:     running — started $(date -u '+%Y-%m-%d %H:%M:%S UTC')
 base:       Ubuntu $FEATHER_BASE_RELEASE LTS ($FEATHER_BASE_CODENAME)
-workdir:    $WORK
+workdir:    $WORK ($(disk "$WORK"))
 slim:       $SLIM
 EOF
-
-log "FeatherOS $FEATHER_VERSION “$FEATHER_CODENAME” build"
-log "workdir: $WORK   |   slim: $SLIM"
-[ "$SLIM" = 1 ] && log "SLIM build: LibreOffice / GIMP / Thunderbird will be omitted"
 
 # ---- helpers -------------------------------------------------------------
 require_cmds() {
@@ -116,25 +123,49 @@ do_fetch() {
     stage "STAGE: fetch base ISO"
     require_cmds curl sha256sum
     bash build/fetch-base.sh "$BASE_ISO"
+    log "disk after fetch: $(disk "$WORK")"
 }
 
 do_extract() {
     stage "STAGE: extract ISO tree + boot blobs"
-    require_cmds xorriso python3
+    require_cmds python3 cp find
     [ -f "$BASE_ISO" ] || fail "base ISO missing — run 'build.sh fetch' first"
-    rm -rf "$ISO_SRC"; mkdir -p "$ISO_SRC"
-    xorriso -osirrox on -indev "$BASE_ISO" -extract / "$ISO_SRC"
+    rm -rf "$ISO_SRC"; mkdir -p "$ISO_SRC" "$ISOMNT"
+
+    if mount -o loop,ro "$BASE_ISO" "$ISOMNT" 2>/dev/null; then
+        log "loop-mounted base ISO; copying tree (excluding the old squashfs)"
+        ( cd "$ISOMNT" && find . -type f ! -path './casper/filesystem.squashfs' -print0 \
+            | xargs -0 cp -a --parents --target-dir "$ISO_SRC" )
+        umount "$ISOMNT"
+    else
+        log "loop mount unavailable — falling back to full xorriso extraction"
+        require_cmds xorriso
+        xorriso -osirrox on -indev "$BASE_ISO" -extract / "$ISO_SRC"
+    fi
+    rmdir "$ISOMNT" 2>/dev/null || true
+
     extract_iso_blobs
-    log "ISO tree top level:"; ls -la "$ISO_SRC" | sed 's/^/    /'
+    # the base ISO has served its purpose — reclaim ~4.7GB
+    rm -f "$BASE_ISO" "$BASE_ISO.sums" "$BASE_ISO.sha256-verified"
+    log "ISO tree ready; disk: $(disk "$WORK")"
+    ls "$ISO_SRC" | sed 's/^/    /'
 }
 
 do_unpack() {
     stage "STAGE: unsquashfs live rootfs"
     require_cmds unsquashfs
     local sq="$ISO_SRC/casper/filesystem.squashfs"
-    [ -f "$sq" ] || fail "no casper/filesystem.squashfs in extracted tree"
-    rm -rf "$ROOTFS"
-    unsquashfs -no-progress -force-uid 0 -force-gid 0 -d "$ROOTFS" "$sq"
+    if [ -f "$sq" ]; then
+        unsquashfs -no-progress -force-uid 0 -force-gid 0 -d "$ROOTFS" "$sq"
+        rm -f "$sq"           # we will write a fresh one; reclaim ~3.2GB now
+    else
+        unsquashfs -no-progress -force-uid 0 -force-gid 0 -d "$ROOTFS" \
+            /dev/null 2>/dev/null || true
+        # tree came from loop-mount path (no squashfs present): nothing to do
+        log "no squashfs in tree (loop-mount path) — rootfs must exist already"
+        [ -d "$ROOTFS" ] || fail "no rootfs and no squashfs to unpack"
+    fi
+    log "rootfs unpacked; disk: $(disk "$WORK")"
 }
 
 do_overlay() {
@@ -201,12 +232,12 @@ do_customize() {
     local link; link="$(cat "$WORK/resolv.link")"
     if [ -n "$link" ]; then ln -s "$link" "$ROOTFS/etc/resolv.conf"; fi
 
-    # clean chroot mounts we may have left behind
     rm -rf "$ROOTFS/run/user"/* 2>/dev/null || true
+    log "customization done; disk: $(disk "$WORK")"
 }
 
 do_repack() {
-    stage "STAGE: re-squash rootfs + patch ISO tree"
+    stage "STAGE: trim + re-squash rootfs + patch ISO tree"
     require_cmds mksquashfs mdir mcopy md5sum
 
     # casper metadata
@@ -215,13 +246,20 @@ do_repack() {
     grep -Ev '^(casper|ubiquity|ubiquity-)' "$ISO_SRC/casper/filesystem.manifest" \
         > "$ISO_SRC/casper/filesystem.manifest-desktop" || true
     du -sx --block-size=1 "$ROOTFS" | cut -f1 > "$ISO_SRC/casper/filesystem.size"
+    log "rootfs size: $(du -sh "$ROOTFS" | cut -f1)"
 
     log "squashing rootfs (zstd)…"
     rm -f "$ISO_SRC/casper/filesystem.squashfs"
     mksquashfs "$ROOTFS" "$ISO_SRC/casper/filesystem.squashfs" \
         -noappend -no-progress -comp zstd -Xcompression-level 15 -b 1M
 
-    # release identity inside the image tree
+    # free ~10GB before the ISO build
+    rm -rf "$ROOTFS"
+    log "squashfs written; disk: $(disk "$WORK")"
+
+    # release identity inside the image tree (files from the ISO are 444 —
+    # remove then recreate rather than truncating in place)
+    rm -f "$ISO_SRC/.disk/info"
     echo "FeatherOS 6.1 (Eiderdown) — Release $FEATHER_ARCH" > "$ISO_SRC/.disk/info"
     [ -f "$ISO_SRC/README.diskdefines" ] && \
         sed -i 's/Ubuntu 22\.04[^"]*/FeatherOS 6.1 (Eiderdown)/g; s/Ubuntu/FeatherOS/g' \
@@ -284,7 +322,7 @@ do_iso() {
 
     {
         echo "FeatherOS $FEATHER_PRETTY"
-        echo "built:      $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+        echo "status:     complete $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
         echo "base:       Ubuntu $FEATHER_BASE_RELEASE LTS ($FEATHER_BASE_CODENAME)"
         echo "workdir:    $WORK"
         echo "sha256:     $(sha256sum "$out" | awk '{print $1}')"
