@@ -49,6 +49,15 @@ BASE_ISO="$WORK/base.iso"
 OUTDIR="$(pwd)/out"
 mkdir -p "$OUTDIR"
 
+# early build metadata (updated again when the ISO is finished)
+cat > "$OUTDIR/build-info.txt" <<EOF
+FeatherOS $FEATHER_PRETTY
+status:     running — started $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+base:       Ubuntu $FEATHER_BASE_RELEASE LTS ($FEATHER_BASE_CODENAME)
+workdir:    $WORK
+slim:       $SLIM
+EOF
+
 log "FeatherOS $FEATHER_VERSION “$FEATHER_CODENAME” build"
 log "workdir: $WORK   |   slim: $SLIM"
 [ "$SLIM" = 1 ] && log "SLIM build: LibreOffice / GIMP / Thunderbird will be omitted"
