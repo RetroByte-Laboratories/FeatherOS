@@ -21,9 +21,18 @@ fail() { printf '\033[1;31m[feather-fetch] ERROR:\033[0m %s\n' "$*" >&2; exit 1;
 
 verify_iso() {
     local iso="$1" sums="$2"
-    grep -F " $(basename "$iso")" "$sums" | sed "s| $(basename "$iso")| $(realpath "$iso")|" \
-        | sha256sum -c - || fail "SHA256 verification FAILED for $iso"
-    log "checksum OK: $(sha256sum "$iso" | cut -c1-16)…"
+    local name expected actual
+    name="$(basename "$iso")"
+    # SHA256SUMS lines are either "hash  name" or "hash *name"
+    expected="$(awk -v n="$name" '{ l=$NF; sub(/^\*/,"",l); if (l == n) print $1 }' "$sums" | head -1)"
+    if [ -z "$expected" ]; then
+        log "no entry for $name found in $(basename "$sums") — file starts with:"
+        head -5 "$sums" | sed 's/^/    | /'
+        fail "could not locate $name in SHA256SUMS"
+    fi
+    actual="$(sha256sum "$iso" | awk '{print $1}')"
+    [ "$expected" = "$actual" ] || fail "SHA256 MISMATCH for $name (expected $expected, got $actual)"
+    log "checksum OK: ${actual:0:16}…"
 }
 
 if [ -n "${FEATHER_BASE_ISO:-}" ]; then

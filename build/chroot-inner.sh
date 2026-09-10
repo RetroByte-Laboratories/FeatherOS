@@ -146,4 +146,4 @@ done
 : > /etc/machine-id 2>/dev/null || true
 
 log "chroot customization complete"
-dpkg -l | grep -c '^ii' | xargs -I{} note "installed packages: {}"
+note "installed packages: $(dpkg -l 2>/dev/null | grep -c '^ii' || true)"

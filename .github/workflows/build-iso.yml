@@ -55,7 +55,16 @@ jobs:
 
       - name: Build FeatherOS ISO
         run: |
-          sudo env SLIM_BUILD="$SLIM_BUILD" bash build/build.sh all
+          set -o pipefail
+          sudo env SLIM_BUILD="$SLIM_BUILD" bash build/build.sh all 2>&1 | tee build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
 
       - name: Smoke test (QEMU boot, BIOS + UEFI)
         if: env.RUN_SMOKE == 'true'
