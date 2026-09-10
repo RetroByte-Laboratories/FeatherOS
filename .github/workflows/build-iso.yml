@@ -63,10 +63,18 @@ jobs:
             xorriso squashfs-tools mtools imagemagick \
             qemu-system-x86 ovmf
 
+      - name: Restore base ISO cache
+        uses: actions/cache@v4
+        with:
+          path: /mnt/base-iso-cache
+          key: base-iso-ubuntu-22.04.5-desktop-amd64-v1
+
       - name: Build FeatherOS ISO
         run: |
           set -o pipefail
-          sudo env SLIM_BUILD="$SLIM_BUILD" bash build/build.sh all 2>&1 | tee build.log
+          sudo env SLIM_BUILD="$SLIM_BUILD" \
+            FEATHER_BASE_ISO=/mnt/base-iso-cache/ubuntu-22.04.5-desktop-amd64.iso \
+            bash build/build.sh all 2>&1 | tee build.log
 
       - name: Upload build log
         if: always()
