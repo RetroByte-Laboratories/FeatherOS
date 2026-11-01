@@ -84,6 +84,25 @@ jobs:
           path: build.log
           if-no-files-found: ignore
 
+      - name: Surface build failure details
+        if: failure()
+        shell: bash
+        run: |
+          if [ -f build.log ]; then
+            {
+              echo '### Build log tail'
+              echo
+              echo '```text'
+              tr '\r' '\n' < build.log | tail -n 80
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            message="$(tr '\r' '\n' < build.log | tail -n 20 | tr '\n' ' ' | sed 's/%/%25/g')"
+            echo "::error title=Build log tail::${message}"
+          else
+            echo '### Build failed before producing build.log' >> "$GITHUB_STEP_SUMMARY"
+            echo '::error title=Build log missing::No build.log was produced.'
+          fi
+
       # Keep logs as workflow artifacts. Avoid committing them back to a
       # hard-coded branch or changing the checkout used by later steps.
       - name: Smoke test (QEMU boot, BIOS + UEFI)
