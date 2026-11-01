@@ -13,6 +13,25 @@ note() { printf '\033[0;33m[feather-chroot]  ·\033[0m %s\n' "$*"; }
 export DEBIAN_FRONTEND=noninteractive
 export LC_ALL=C.UTF-8
 
+# ZSys installs an APT hook that talks to zsysd. The daemon is intentionally
+# not started inside this build chroot, so suspend matching APT hooks during
+# package changes and restore them before the image is cleaned up.
+ZSYS_APT_HOOKS_BACKUP=/tmp/feather-zsys-apt-hooks
+restore_zsys_apt_hooks() {
+    [ -d "$ZSYS_APT_HOOKS_BACKUP" ] || return 0
+    find "$ZSYS_APT_HOOKS_BACKUP" -maxdepth 1 -type f \
+        -exec mv -f -t /etc/apt/apt.conf.d -- {} + 2>/dev/null || true
+    rmdir "$ZSYS_APT_HOOKS_BACKUP" 2>/dev/null || true
+}
+trap restore_zsys_apt_hooks EXIT
+mkdir -p "$ZSYS_APT_HOOKS_BACKUP"
+while IFS= read -r -d '' hook; do
+    if grep -qi zsys "$hook"; then
+        mv "$hook" "$ZSYS_APT_HOOKS_BACKUP/"
+        note "temporarily disabled ZSys APT hook: $(basename "$hook")"
+    fi
+done < <(find /etc/apt/apt.conf.d -maxdepth 1 -type f -print0 2>/dev/null)
+
 # ===========================================================================
 # 0. apt sources — jammy lives on archive.ubuntu.com until EOL (2027-04),
 #    then old-releases.ubuntu.com. Pick whichever actually serves dists.
@@ -147,6 +166,8 @@ rm -rf /usr/share/gnome-help/* 2>/dev/null || true
 # 9. cleanup for a tidy squashfs
 # ===========================================================================
 log "cleaning up"
+restore_zsys_apt_hooks
+trap - EXIT
 apt-get clean
 rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*.deb /var/cache/apt/*.bin \
        /var/lib/apt/lists/partial/* /tmp/* /var/tmp/* \
