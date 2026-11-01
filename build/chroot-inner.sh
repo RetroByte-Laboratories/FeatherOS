@@ -13,6 +13,15 @@ note() { printf '\033[0;33m[feather-chroot]  ·\033[0m %s\n' "$*"; }
 export DEBIAN_FRONTEND=noninteractive
 export LC_ALL=C.UTF-8
 
+# Preserve FeatherOS overlay conffiles without prompting when base packages
+# are configured noninteractively inside the chroot.
+apt-get() {
+    command apt-get \
+        -o Dpkg::Options::=--force-confdef \
+        -o Dpkg::Options::=--force-confold \
+        "$@"
+}
+
 # ZSys installs an APT hook that talks to zsysd. The daemon is intentionally
 # not started inside this build chroot, so suspend matching APT hooks during
 # package changes and restore them before the image is cleaned up.
