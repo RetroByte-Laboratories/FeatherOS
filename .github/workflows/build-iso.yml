@@ -96,8 +96,12 @@ jobs:
               tr '\r' '\n' < build.log | tail -n 80
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            message="$(tr '\r' '\n' < build.log | tail -n 20 | tr '\n' ' ' | sed 's/%/%25/g')"
-            echo "::error title=Build log tail::${message}"
+            diagnostics="$(tr '\r' '\n' < build.log | grep -Ei 'error|failed|lightdm-gtk-greeter|dpkg|zsys|invoke-rc|systemctl|dbus' | tail -n 40 || true)"
+            if [ -z "$diagnostics" ]; then
+              diagnostics="$(tr '\r' '\n' < build.log | tail -n 80)"
+            fi
+            message="$(printf '%s' "$diagnostics" | tr '\n' ' ' | sed 's/%/%25/g')"
+            echo "::error title=Build diagnostics::${message}"
           else
             echo '### Build failed before producing build.log' >> "$GITHUB_STEP_SUMMARY"
             echo '::error title=Build log missing::No build.log was produced.'
