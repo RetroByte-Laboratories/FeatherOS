@@ -213,13 +213,11 @@ do_unpack() {
     require_cmds unsquashfs
     local sq="$ISO_SRC/casper/filesystem.squashfs"
     if [ -f "$sq" ]; then
-        unsquashfs -no-progress -force-uid 0 -force-gid 0 -d "$ROOTFS" "$sq"
+        unsquashfs -no-progress -d "$ROOTFS" "$sq"
         rm -f "$sq"           # we will write a fresh one; reclaim ~3.2GB now
     else
-        unsquashfs -no-progress -force-uid 0 -force-gid 0 -d "$ROOTFS" \
-            /dev/null 2>/dev/null || true
-        # tree came from loop-mount path (no squashfs present): nothing to do
-        log "no squashfs in tree (loop-mount path) — rootfs must exist already"
+        # Some extraction paths may have unpacked the rootfs already.
+        log "no squashfs in tree — rootfs must already exist"
         [ -d "$ROOTFS" ] || fail "no rootfs and no squashfs to unpack"
     fi
     log "rootfs unpacked; disk: $(disk "$WORK")"
