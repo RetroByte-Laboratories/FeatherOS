@@ -108,26 +108,70 @@ extract_iso_blobs() {
     python3 - "$BASE_ISO" "$WORK" <<'PY'
 import struct, sys
 iso, out = sys.argv[1:3]
+sector_size = 512
 with open(iso, 'rb') as f:
-    mbr = f.read(512)
-assert mbr[510:512] == b'\x55\xaa', "base ISO has no hybrid MBR — unexpected layout"
-target = None
+    mbr = f.read(sector_size)
+if len(mbr) != sector_size or mbr[510:512] != b'\x55\xaa':
+    raise SystemExit("base ISO has no valid hybrid MBR")
+
+mbr_entries = []
 for i in range(4):
-    e = mbr[446 + 16*i: 446 + 16*(i+1)]
-    if e[4] == 0:
-        continue
-    start, cnt = struct.unpack('<II', e[8:16])
-    if i == 1:  # partition 2 = EFI system partition on Ubuntu hybrids
-        target = (start, cnt)
-if not target:
-    raise SystemExit("EFI partition (p2) not found in base ISO MBR")
+    entry = mbr[446 + 16*i: 446 + 16*(i+1)]
+    part_type = entry[4]
+    start, count = struct.unpack('<II', entry[8:16])
+    if part_type and count:
+        mbr_entries.append((i + 1, part_type, start, count))
+
+# Prefer an MBR EFI System Partition, but don't assume it occupies slot 2.
+target = next(((start, count) for _, part_type, start, count in mbr_entries
+               if part_type == 0xEF), None)
+source = "MBR EFI partition"
+
+# Some hybrid ISOs expose the EFI image through GPT rather than an MBR 0xEF
+# entry. Locate the standard EFI System Partition GUID in the GPT entry array.
+if target is None:
+    with open(iso, 'rb') as f:
+        f.seek(sector_size)
+        header = f.read(sector_size)
+    if header[:8] == b'EFI PART':
+        entries_lba = struct.unpack_from('<Q', header, 72)[0]
+        entry_count = struct.unpack_from('<I', header, 80)[0]
+        entry_size = struct.unpack_from('<I', header, 84)[0]
+        efi_guid = bytes.fromhex('28732ac11ff8d211ba4b00a0c93ec93b')
+        if entry_size >= 48 and entry_count <= 4096:
+            with open(iso, 'rb') as f:
+                f.seek(entries_lba * sector_size)
+                for _ in range(entry_count):
+                    entry = f.read(entry_size)
+                    if len(entry) != entry_size:
+                        break
+                    if entry[:16] == efi_guid:
+                        first_lba = struct.unpack_from('<Q', entry, 32)[0]
+                        last_lba = struct.unpack_from('<Q', entry, 40)[0]
+                        if last_lba >= first_lba:
+                            target = (first_lba, last_lba - first_lba + 1)
+                            source = "GPT EFI System Partition"
+                            break
+
+if target is None:
+    details = ', '.join(
+        f"p{number}:type=0x{part_type:02x},start={start},sectors={count}"
+        for number, part_type, start, count in mbr_entries
+    ) or "no populated MBR entries"
+    raise SystemExit(f"EFI System Partition not found in base ISO ({details})")
+
+start, count = target
+with open(iso, 'rb') as f:
+    f.seek(start * sector_size)
+    efi = f.read(count * sector_size)
+if len(efi) != count * sector_size:
+    raise SystemExit("EFI System Partition extends beyond the base ISO")
+
 with open(out + "/boot_hybrid.img", "wb") as f:
     f.write(mbr[:432])
-with open(iso, 'rb') as f:
-    f.seek(target[0] * 512)
-    with open(out + "/efi.img", "wb") as f2:
-        f2.write(f.read(target[1] * 512))
-print(f"blobs: boot_hybrid.img=432B efi.img={target[1]*512}B")
+with open(out + "/efi.img", "wb") as f:
+    f.write(efi)
+print(f"blobs: boot_hybrid.img=432B efi.img={len(efi)}B source={source} start={start}")
 PY
 }
 
