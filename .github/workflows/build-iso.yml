@@ -84,25 +84,8 @@ jobs:
           path: build.log
           if-no-files-found: ignore
 
-      # Debug channel: the sandbox cannot download logs/artifacts from
-      # GitHub's CDN, so push the log tail into the repo itself.
-      - name: Push build log to branch (debug channel)
-        if: always()
-        run: |
-          git config user.name "featheros-ci-bot"
-          git config user.email "bot@users.noreply.github.com"
-          git fetch origin arena/01a08a36-featheros
-          git checkout -B ci-logpush origin/arena/01a08a36-featheros
-          mkdir -p ci
-          if [ -f build.log ]; then
-            tail -c 500000 build.log > ci/last-build.log
-          else
-            echo "no build.log produced" > ci/last-build.log
-          fi
-          git add ci/last-build.log
-          git commit -m "CI: attach build log tail (run ${{ github.run_id }})"
-          git push origin HEAD:arena/01a08a36-featheros
-
+      # Keep logs as workflow artifacts. Avoid committing them back to a
+      # hard-coded branch or changing the checkout used by later steps.
       - name: Smoke test (QEMU boot, BIOS + UEFI)
         if: env.RUN_SMOKE == 'true'
         continue-on-error: true

@@ -33,14 +33,27 @@ disk()  { df -h "$1" 2>/dev/null | awk 'NR==2{printf "%s free of %s", $4, $2}'; 
 
 # ---- work directory ------------------------------------------------------
 # Evaluate candidates, pick the one with the most free space; need >= 12GB.
+# FEATHER_WORK is an explicit override. Keep all diagnostics on stderr because
+# pick_workdir's stdout is captured to obtain the selected path.
 pick_workdir() {
     local cands=() d avail best="" best_avail=0
-    [ -n "${FEATHER_WORK:-}" ] && cands+=("$FEATHER_WORK")
+
+    if [ -n "${FEATHER_WORK:-}" ]; then
+        d="$FEATHER_WORK"
+        mkdir -p "$d" 2>/dev/null || fail "cannot create FEATHER_WORK directory: $d"
+        avail="$(df -BG --output=avail "$d" 2>/dev/null | tail -1 | tr -dc '0-9')"
+        log "using FEATHER_WORK $d: ${avail:-?}GB free $(disk "$d")" >&2
+        [ -n "${avail:-}" ] || fail "cannot determine free space for FEATHER_WORK: $d"
+        [ "$avail" -ge 12 ] || fail "FEATHER_WORK $d has only ${avail}GB free (need >=12GB)"
+        printf '%s' "$d"
+        return
+    fi
+
     cands+=(/mnt/feather-build "$HOME/feather-build" /tmp/feather-build ./feather-build-work)
     for d in "${cands[@]}"; do
         mkdir -p "$d" 2>/dev/null || continue
         avail="$(df -BG --output=avail "$d" 2>/dev/null | tail -1 | tr -dc '0-9')"
-        log "candidate workdir $d: ${avail:-?}GB free $(disk "$d")"
+        log "candidate workdir $d: ${avail:-?}GB free $(disk "$d")" >&2
         [ -n "${avail:-}" ] || continue
         if [ "$avail" -gt "$best_avail" ]; then best="$d"; best_avail="$avail"; fi
     done
@@ -133,8 +146,8 @@ do_extract() {
     rm -rf "$ISO_SRC"; mkdir -p "$ISO_SRC" "$ISOMNT"
 
     if mount -o loop,ro "$BASE_ISO" "$ISOMNT" 2>/dev/null; then
-        log "loop-mounted base ISO; copying tree (excluding the old squashfs)"
-        ( cd "$ISOMNT" && find . -type f ! -path './casper/filesystem.squashfs' -print0 \
+        log "loop-mounted base ISO; copying ISO tree including the live squashfs"
+        ( cd "$ISOMNT" && find . -type f -print0 \
             | xargs -0 cp -a --parents --target-dir "$ISO_SRC" )
         umount "$ISOMNT"
     else
@@ -288,7 +301,8 @@ do_repack() {
     done
 
     # refresh md5 manifest of the ISO tree
-    ( cd "$ISO_SRC" && rm -f md5sum.txt && find . -type f -print0 | sort -z \
+    ( cd "$ISO_SRC" && rm -f md5sum.txt \
+        && find . -type f ! -path './md5sum.txt' -print0 | sort -z \
         | xargs -0 md5sum > md5sum.txt )
     log "ISO tree patched + md5sum.txt refreshed"
 }

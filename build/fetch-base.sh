@@ -24,7 +24,13 @@ mkdir -p "$(dirname "$TARGET")"
 log() { printf '\n\033[1;35m[feather-fetch]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[feather-fetch] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
-verified() { [ -f "$TARGET" ] && [ -f "$TARGET.sha256-verified" ]; }
+verified() {
+    local recorded actual
+    [ -f "$TARGET" ] && [ -s "$TARGET.sha256-verified" ] || return 1
+    recorded="$(cat "$TARGET.sha256-verified")"
+    actual="$(sha256sum < "$TARGET" | awk '{print $1}')"
+    [ "$recorded" = "$actual" ]
+}
 
 fetch_sums() { # $1 = directory that hosts SHA256SUMS
     curl -fsSL --max-time 60 -o "$TARGET.sums" "$1/SHA256SUMS"
@@ -40,8 +46,9 @@ verify() {
         head -5 "$TARGET.sums" | sed 's/^/    | /'
         return 1
     fi
-    actual="$(sha256sum "$TARGET" | awk '{print $1}')"
+    actual="$(sha256sum < "$TARGET" | awk '{print $1}')"
     [ "$expected" = "$actual" ] || fail "SHA256 MISMATCH for $name (expected $expected, got $actual)"
+    printf '%s\n' "$actual" > "$TARGET.sha256-verified"
     log "checksum OK: ${actual:0:16}… ($(du -h "$TARGET" | cut -f1))"
 }
 
@@ -62,16 +69,14 @@ if [ -n "${FEATHER_BASE_ISO:-}" ]; then
     ln -f "$FEATHER_BASE_ISO" "$TARGET" 2>/dev/null || cp -f "$FEATHER_BASE_ISO" "$TARGET"
 
     name="${BASE_ISO_URLS[0]##*/}"
-    sums_ok=0
+    verified_sum=0
     for url in "${BASE_ISO_URLS[@]}"; do
-        if fetch_sums "${url%/*}"; then sums_ok=1; break; fi
+        if fetch_sums "${url%/*}" && verify "$name"; then
+            verified_sum=1
+            break
+        fi
     done
-    if [ "$sums_ok" = 1 ]; then
-        verify "$name" || log "WARNING: could not verify against upstream sums — continuing (unverified!)"
-    else
-        log "WARNING: no SHA256SUMS reachable — continuing (unverified!)"
-    fi
-    touch "$TARGET.sha256-verified"
+    [ "$verified_sum" = 1 ] || fail "could not verify cached ISO '$name' against upstream SHA256SUMS"
     log "base ISO ready: $TARGET"
     exit 0
 fi
@@ -85,12 +90,16 @@ for url in "${BASE_ISO_URLS[@]}"; do
     if curl -fL --retry 3 --retry-delay 5 -o "$TARGET.part" "$url"; then
         log "downloaded $(du -h "$TARGET.part" | cut -f1)"
         mv -f "$TARGET.part" "$TARGET"
-        if fetch_sums "$dir"; then
-            verify "$name" || fail "verification failed for $name"
-        else
-            log "WARNING: could not fetch SHA256SUMS from $dir — continuing (unverified!)"
+        if ! fetch_sums "$dir"; then
+            log "could not fetch SHA256SUMS from $dir — discarding this download"
+            rm -f "$TARGET" "$TARGET.sums"
+            continue
         fi
-        touch "$TARGET.sha256-verified"
+        if ! verify "$name"; then
+            log "no matching checksum for $name from $dir — trying the next mirror"
+            rm -f "$TARGET" "$TARGET.sums"
+            continue
+        fi
         ok=1
         break
     else

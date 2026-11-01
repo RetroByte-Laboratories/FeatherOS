@@ -26,6 +26,20 @@ mkdir -p "$SMK"
 CONV=""
 command -v magick >/dev/null && CONV="magick" || CONV="convert"
 
+OVMF_CODE=""
+OVMF_VARS=""
+for ovmf_dir in /usr/share/OVMF /usr/share/ovmf; do
+    if [ -r "$ovmf_dir/OVMF_CODE_4M.fd" ] && [ -r "$ovmf_dir/OVMF_VARS_4M.fd" ]; then
+        OVMF_CODE="$ovmf_dir/OVMF_CODE_4M.fd"
+        OVMF_VARS="$ovmf_dir/OVMF_VARS_4M.fd"
+        break
+    elif [ -r "$ovmf_dir/OVMF_CODE.fd" ] && [ -r "$ovmf_dir/OVMF_VARS.fd" ]; then
+        OVMF_CODE="$ovmf_dir/OVMF_CODE.fd"
+        OVMF_VARS="$ovmf_dir/OVMF_VARS.fd"
+        break
+    fi
+done
+
 qmp_screendump() {
     python3 - "$1" "$2" <<'PY'
 import json, socket, sys
@@ -45,11 +59,20 @@ PY
 run_qemu() {
     local name="$1" mode="$2" secs="$3"
     local sock="$SMK/$name.qmp"
+    local vars_copy="$SMK/$name-vars.fd"
     local extra=()
-    [ "$mode" = "uefi" ] && extra=(-bios /usr/share/ovmf/OVMF.fd)
+    if [ "$mode" = "uefi" ]; then
+        extra=(
+            -drive "if=pflash,format=raw,unit=0,readonly=on,file=$OVMF_CODE"
+            -drive "if=pflash,format=raw,unit=1,file=$vars_copy"
+        )
+    fi
 
     log "booting ($mode) — up to $((secs/60)) min, screenshot every 25s"
-    rm -f "$sock" /tmp/feather-"$name".ppm
+    rm -f "$sock" "$vars_copy" /tmp/feather-"$name".ppm
+    if [ "$mode" = "uefi" ]; then
+        cp "$OVMF_VARS" "$vars_copy" || { log "could not copy OVMF variables image"; return 1; }
+    fi
     qemu-system-x86_64 \
         -m 3072 -smp 2 -machine q35 \
         -cdrom "$ISO" -boot d \
@@ -72,11 +95,15 @@ run_qemu() {
 
     kill "$pid" 2>/dev/null || true
     wait "$pid" 2>/dev/null || true
-    rm -f "$sock"
+    rm -f "$sock" "$vars_copy"
 }
 
 run_qemu "bios" "bios" "$SECS_BIOS"
-run_qemu "uefi" "uefi" "$SECS_UEFI"
+if [ -n "$OVMF_CODE" ] && [ -n "$OVMF_VARS" ]; then
+    run_qemu "uefi" "uefi" "$SECS_UEFI"
+else
+    log "OVMF code/variables pair not found — skipping the UEFI boot test"
+fi
 
 # summary
 {
@@ -85,6 +112,7 @@ run_qemu "uefi" "uefi" "$SECS_UEFI"
     echo
     echo "BIOS screenshots: $(ls "$SMK"/bios-*.png 2>/dev/null | wc -l)"
     echo "UEFI screenshots: $(ls "$SMK"/uefi-*.png 2>/dev/null | wc -l)"
+    echo "UEFI firmware: ${OVMF_CODE:-not found (test skipped)}"
     echo
     echo "Inspect the PNGs: final frames should show the FeatherOS Plymouth"
     echo "splash, then the LightDM greeter / live desktop."

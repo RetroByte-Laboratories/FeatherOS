@@ -24,6 +24,8 @@ if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
 else
     TAG="v${FEATHER_VERSION}-${FEATHER_CODENAME}"
 fi
+SHORT="${GITHUB_SHA:-$(git rev-parse HEAD)}"
+SHORT="${SHORT:0:7}"
 
 # ---- split + checksums ---------------------------------------------------
 log "splitting ISO into release-asset parts (1900M each)"
