@@ -1,12 +1,12 @@
 const ISO_NAME = "FeatherOS-6.1-eiderdown-desktop-amd64.iso";
 const PARTS = [
   {
-    url: "https://github.com/RetroByte-Laboratories/FeatherOS/releases/download/v6.1-eiderdown-full-gui-ab90974/FeatherOS-6.1-eiderdown-desktop-amd64.iso.part-00",
+    url: "https://github.com/RetroByte-Laboratories/FeatherOS/releases/download/v6.1-eiderdown-rebuild-5260d4c/FeatherOS-6.1-eiderdown-desktop-amd64.iso.part-00",
     size: 1992294400,
   },
   {
-    url: "https://github.com/RetroByte-Laboratories/FeatherOS/releases/download/v6.1-eiderdown-full-gui-ab90974/FeatherOS-6.1-eiderdown-desktop-amd64.iso.part-01",
-    size: 1758617600,
+    url: "https://github.com/RetroByte-Laboratories/FeatherOS/releases/download/v6.1-eiderdown-rebuild-5260d4c/FeatherOS-6.1-eiderdown-desktop-amd64.iso.part-01",
+    size: 1758470144,
   },
 ];
 const ISO_SIZE = PARTS.reduce((sum, part) => sum + part.size, 0);

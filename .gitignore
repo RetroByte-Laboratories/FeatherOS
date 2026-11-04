@@ -6,6 +6,7 @@ out/
 
 # local work dirs
 /feather-build/
+/.wrangler/
 base.iso
 
 # editors
