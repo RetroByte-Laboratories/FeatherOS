@@ -102,6 +102,8 @@ h1 em, h2 em { color: var(--coral); font-style: normal; }
 .download-panel h3 { margin: 6px 0 0; font-size: 1.15rem; letter-spacing: -.03em; }
 .version-pill { padding: 6px 10px; border-radius: 999px; background: rgba(198,169,255,.13); color: var(--lilac); font-size: .72rem; font-weight: 800; }
 .asset-note { margin: 17px 0 12px; color: var(--muted); font-size: .81rem; line-height: 1.65; }
+.single-iso-button { width: 100%; margin-bottom: 4px; }
+.fallback-note { margin: 12px 0 4px; font-size: .74rem; }
 .asset-row { display: flex; align-items: center; gap: 13px; padding: 13px 12px; border-bottom: 1px solid var(--line); text-decoration: none; transition: background .18s ease; }
 .asset-row:hover { border-radius: 11px; background: rgba(255,255,255,.06); }
 .asset-number { width: 34px; height: 34px; display: grid; place-items: center; flex-shrink: 0; border-radius: 10px; background: rgba(255,179,151,.11); color: var(--coral); font-size: .74rem; font-weight: 800; }
