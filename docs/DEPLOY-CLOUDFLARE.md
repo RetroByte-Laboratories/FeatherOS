@@ -4,7 +4,7 @@ The `docs/` directory is the complete site for `https://retrobyte-laboratories.p
 
 ## Cloudflare Pages settings
 
-In the Cloudflare dashboard, deploy this repository to the **RetroByte Laboratories** Pages project:
+In the Cloudflare dashboard, create a Pages project named `retrobyte-laboratories` (or select it if it already exists), then connect this repository:
 
 - GitHub repository: `RetroByte-Laboratories/FeatherOS`
 - Production branch: `arena/c6d30a0a-featheros`
