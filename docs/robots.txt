@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://featheros.pages.dev/sitemap.xml
+Sitemap: https://retrobyte-laboratories.pages.dev/sitemap.xml
