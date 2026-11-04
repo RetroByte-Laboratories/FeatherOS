@@ -2,6 +2,8 @@
 
 ![Build FeatherOS ISO](https://github.com/RetroByte-Laboratories/FeatherOS/actions/workflows/build-iso.yml/badge.svg)
 
+🌐 **[Official FeatherOS website](https://retrobyte-laboratories.github.io/FeatherOS/)** · Home, downloads, FAQ and project information.
+
 **FeatherOS** is a lightweight, classic-desktop Linux distribution built on the
 solid bones of **Ubuntu 22.04 LTS (jammy)** — but tuned to *feel* like using
 Ubuntu 22.04 at its best: fast, familiar and feather-light.
