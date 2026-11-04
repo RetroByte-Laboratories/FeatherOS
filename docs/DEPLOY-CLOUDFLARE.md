@@ -2,15 +2,15 @@
 
 The static website is in `docs/`, including the standalone downloads page at `/download/`; `wrangler.toml` names the Pages project `featheros` and sets `docs/` as the output directory. Keep the ISO Pages Function in the repository-root `functions/` directory; Cloudflare discovers it automatically during a Pages deployment.
 
-## Connect the repository
+## Deploy to the existing Pages site
 
-1. In the Cloudflare dashboard, open **Workers & Pages → Create application → Pages → Connect to Git**.
-2. Connect the GitHub repository `RetroByte-Laboratories/FeatherOS`.
-3. Choose production branch `arena/c6d30a0a-featheros`.
+1. In the Cloudflare dashboard, open the existing Pages project that serves `https://featheros.pages.dev/`.
+2. Connect its Git integration to `RetroByte-Laboratories/FeatherOS` (or update the repository if one is already connected).
+3. Set the production branch to `arena/c6d30a0a-featheros`.
 4. Select **None** as the framework preset, leave the build command empty, and set the build output directory to `docs`.
-5. Name the Pages project `featheros`, then deploy. If Cloudflare reports that the project name is already taken, choose an available name; the `pages.dev` URL will use that name.
+5. Save the settings and trigger a production deployment for the selected branch.
 
-Once deployed with the requested project name, the public website URL will be `https://featheros.pages.dev/`. Git integration will redeploy it after pushes to the selected production branch.
+Keep using the existing `featheros` project if you need to preserve `https://featheros.pages.dev/`. A different Pages project name receives a different `pages.dev` hostname. Git integration will redeploy after future pushes to the selected production branch.
 
 ## ISO download
 
