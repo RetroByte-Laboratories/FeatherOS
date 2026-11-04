@@ -1,6 +1,6 @@
 # Deploy the FeatherOS website to Cloudflare Pages
 
-The static website is in `docs/`; `wrangler.toml` names the Pages project `featheros` and sets `docs/` as the output directory.
+The static website is in `docs/`; `wrangler.toml` names the Pages project `featheros` and sets `docs/` as the output directory. Keep the Pages Function in the repository-root `functions/` directory; Cloudflare discovers it automatically during a Pages deployment.
 
 ## Connect the repository
 
