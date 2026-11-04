@@ -139,11 +139,42 @@ fi
 log "compiling GSettings system defaults (theme, wallpaper, metacity)"
 glib-compile-schemas /usr/share/glib-2.0/schemas/
 
-log "setting default display manager + enabling live-session bootstrap"
+log "enabling graphical boot, LightDM, and live-session bootstrap"
+[ -x /usr/sbin/lightdm ] || fail "LightDM executable is missing"
+[ -e /lib/systemd/system/lightdm.service ] || fail "LightDM systemd unit is missing"
+[ -e /lib/systemd/system/graphical.target ] || fail "graphical.target is missing"
 echo /usr/bin/lightdm > /etc/X11/default-display-manager
-systemctl enable feather-live-init.service 2>/dev/null || \
-    ln -sf /etc/systemd/system/feather-live-init.service \
-        /etc/systemd/system/graphical.target.wants/feather-live-init.service
+
+# The base desktop ISO can retain a multi-user default or a stale GDM
+# display-manager alias after package removal. Force graphical.target and
+# make LightDM its display manager so boot cannot stop at a text cursor.
+systemctl set-default graphical.target >/dev/null 2>&1 || true
+ln -sfn /lib/systemd/system/graphical.target /etc/systemd/system/default.target
+rm -f /etc/systemd/system/display-manager.service \
+      /etc/systemd/system/graphical.target.wants/gdm.service \
+      /etc/systemd/system/graphical.target.wants/gdm3.service
+systemctl enable lightdm.service >/dev/null 2>&1 || true
+ln -sfn /lib/systemd/system/lightdm.service /etc/systemd/system/display-manager.service
+mkdir -p /etc/systemd/system/graphical.target.wants
+ln -sfn /lib/systemd/system/lightdm.service \
+    /etc/systemd/system/graphical.target.wants/lightdm.service
+
+systemctl enable feather-live-init.service 2>/dev/null || true
+ln -sfn /etc/systemd/system/feather-live-init.service \
+    /etc/systemd/system/graphical.target.wants/feather-live-init.service
+
+# Fail the build rather than publishing an ISO that cannot start its GUI.
+[ "$(readlink -f /etc/systemd/system/default.target)" = \
+  "$(readlink -f /lib/systemd/system/graphical.target)" ] || \
+    fail "graphical.target is not the default boot target"
+[ -e /etc/systemd/system/display-manager.service ] || \
+    fail "LightDM display-manager alias is missing"
+[ -e /etc/systemd/system/graphical.target.wants/lightdm.service ] || \
+    fail "LightDM is not enabled for graphical.target"
+[ -e /etc/systemd/system/graphical.target.wants/feather-live-init.service ] || \
+    fail "live-session bootstrap is not enabled"
+[ -f /usr/share/xsessions/featheros.desktop ] || \
+    fail "FeatherOS desktop session is missing"
 
 log "activating Plymouth 'feather' theme"
 update-alternatives --install \
