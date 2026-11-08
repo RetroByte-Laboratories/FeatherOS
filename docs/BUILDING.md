@@ -53,9 +53,15 @@ Output: `out/FeatherOS-6.1-eiderdown-desktop-amd64.iso` + `out/build-info.txt`.
 - the ISO is **split into 1900 MB parts** (GitHub caps release assets at
   2 GiB) and published with `SHA256SUMS` via `build/publish-release.sh`
 - the optional QEMU smoke test boots the ISO under TCG for both BIOS and
-  UEFI (OVMF), screenshotting every 25 s into the `smoke-screenshots` artifact
+  UEFI (OVMF), screenshotting every 25 s into the `smoke-screenshots` artifact;
+  it fails if QEMU/OVMF cannot start or either mode yields no screenshots
+- the manual workflow can also download an existing release, verify its split
+  asset checksums, reassemble the ISO, and QEMU-test it without rebuilding or
+  publishing another release
 
 To produce a release: push a tag or run the workflow with *Publish release*.
+To test an existing release: run the workflow with *Test existing release*
+selected, provide its tag, and keep *Boot-test the ISO* enabled.
 
 ## Why this approach
 

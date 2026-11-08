@@ -15,6 +15,15 @@ on:
         description: "Publish a GitHub release with the ISO"
         type: boolean
         default: true
+      test_existing_release:
+        description: "Download and QEMU-test a published ISO instead of rebuilding"
+        type: boolean
+        default: false
+      release_tag:
+        description: "Published release tag to test"
+        type: string
+        required: false
+        default: "v6.1-eiderdown-rebuild-5260d4c"
   push:
     tags: ["v*"]
 
@@ -35,15 +44,29 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Resolve build options
+        env:
+          INPUT_SLIM_BUILD: ${{ inputs.slim_build }}
+          INPUT_RUN_SMOKE: ${{ inputs.run_smoke_test }}
+          INPUT_PUBLISH_RELEASE: ${{ inputs.publish_release }}
+          INPUT_TEST_RELEASE: ${{ inputs.test_existing_release }}
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "SLIM_BUILD=${{ inputs.slim_build }}" >> "$GITHUB_ENV"
-            echo "RUN_SMOKE=${{ inputs.run_smoke_test }}" >> "$GITHUB_ENV"
-            echo "PUBLISH_RELEASE=${{ inputs.publish_release }}" >> "$GITHUB_ENV"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ "$INPUT_TEST_RELEASE" = "true" ] && [[ ! "$INPUT_RELEASE_TAG" =~ ^[A-Za-z0-9._-]+$ ]]; then
+              echo "Invalid release_tag: use only letters, digits, dot, underscore, and hyphen." >&2
+              exit 1
+            fi
+            echo "SLIM_BUILD=$INPUT_SLIM_BUILD" >> "$GITHUB_ENV"
+            echo "RUN_SMOKE=$INPUT_RUN_SMOKE" >> "$GITHUB_ENV"
+            echo "PUBLISH_RELEASE=$INPUT_PUBLISH_RELEASE" >> "$GITHUB_ENV"
+            echo "TEST_RELEASE=$INPUT_TEST_RELEASE" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=$INPUT_RELEASE_TAG" >> "$GITHUB_ENV"
           else
             echo "SLIM_BUILD=false" >> "$GITHUB_ENV"
             echo "RUN_SMOKE=true" >> "$GITHUB_ENV"
             echo "PUBLISH_RELEASE=true" >> "$GITHUB_ENV"
+            echo "TEST_RELEASE=false" >> "$GITHUB_ENV"
+            echo "RELEASE_TAG=" >> "$GITHUB_ENV"
           fi
 
       - name: Free disk space (runner images carry ~25GB of SDKs)
@@ -63,13 +86,38 @@ jobs:
             xorriso squashfs-tools mtools imagemagick \
             qemu-system-x86 ovmf
 
+      - name: Download and verify published ISO
+        if: env.TEST_RELEASE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          source build/config.sh
+          release_dir="$(mktemp -d)"
+          trap 'rm -rf "$release_dir"' EXIT
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ISO_NAME.part-*" \
+            --pattern SHA256SUMS \
+            --dir "$release_dir"
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          (
+            cd "$release_dir"
+            sha256sum -c SHA256SUMS
+            cat "$ISO_NAME".part-* > "$GITHUB_WORKSPACE/out/$ISO_NAME"
+          )
+          printf 'FeatherOS %s (%s)\nstatus: downloaded and checksum-verified for QEMU smoke test\n' \
+            "$FEATHER_VERSION" "$FEATHER_CODENAME" > out/build-info.txt
+
       - name: Restore base ISO cache
+        if: env.TEST_RELEASE != 'true'
         uses: actions/cache@v4
         with:
           path: /mnt/base-iso-cache
           key: base-iso-ubuntu-22.04.5-desktop-amd64-v1
 
       - name: Build FeatherOS ISO
+        if: env.TEST_RELEASE != 'true'
         run: |
           set -o pipefail
           sudo env SLIM_BUILD="$SLIM_BUILD" \
@@ -85,7 +133,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Surface build failure details
-        if: failure()
+        if: failure() && env.TEST_RELEASE != 'true'
         shell: bash
         run: |
           if [ -f build.log ]; then
@@ -111,7 +159,6 @@ jobs:
       # hard-coded branch or changing the checkout used by later steps.
       - name: Smoke test (QEMU boot, BIOS + UEFI)
         if: env.RUN_SMOKE == 'true'
-        continue-on-error: true
         run: |
           sudo env SMOKE_SECS_BIOS=660 SMOKE_SECS_UEFI=420 bash build/smoke-test.sh
           sudo chown -R "$(id -u):$(id -g)" out/ || true
@@ -135,7 +182,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Publish GitHub release
-        if: env.PUBLISH_RELEASE == 'true'
+        if: env.PUBLISH_RELEASE == 'true' && env.TEST_RELEASE != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: bash build/publish-release.sh

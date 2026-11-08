@@ -191,8 +191,9 @@ do_extract() {
 
     if mount -o loop,ro "$BASE_ISO" "$ISOMNT" 2>/dev/null; then
         log "loop-mounted base ISO; copying ISO tree including the live squashfs"
-        ( cd "$ISOMNT" && find . -type f -print0 \
-            | xargs -0 cp -a --parents --target-dir "$ISO_SRC" )
+        # Preserve symlinks and directory metadata as well as files; boot media
+        # can rely on links in the original ISO tree.
+        cp -a "$ISOMNT/." "$ISO_SRC/"
         umount "$ISOMNT"
     else
         log "loop mount unavailable — falling back to full xorriso extraction"
